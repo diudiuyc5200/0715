@@ -2,7 +2,7 @@
  * Driver (skeleton code) for LIONSEMI LN8282 SC Voltage Regulator
  *
  * Copyright (C) 2019 Lion Semiconductor Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * Author: Jae Lee <kjaelee@lionsemi.com>
  *
@@ -38,34 +38,34 @@
 #include <linux/power/ln8282.h>
 
 #define LN8282_DRIVER_NAME	"ln8282"
-#define LN8282_HW_REV_Bx	//HW rev.
+#define LN8282_HW_REV_Bx
 
-// DEBUG options (uncomment)
-#define LN8282_DEBUG_OTP_CTRL		// **WARNING** this is an experimental feature
-					//             NEVER use in production releases
+
+#define LN8282_DEBUG_OTP_CTRL
+
 
 
 /*********************************************************************************
  * DESIGN GUIDE:
  *********************************************************************************/
-// key (top-level) functions
-//   --> ln8282_change_opmode()	: set control registers and change operation mode (STANDBY, BYPASS, SWITCHING)
-//   --> ln8282_set_powerpath()	: configure power path (forward or reverse) based on external power connections/scenario
-//   --> ln8282_set_infet()	: enable/disable INFET
-//   --> ln8282_use_ext_5V()	: enable/disable EXT_5V connection
-//   --> ln8282_hw_init()	: initialize chip (after POR)
 
-// misc. features (not implemented here)
-//   --> IRQ  : enable interrupt. (should connect to LN8282 nINT pin)
-//   --> GPIO : may be used for configuring nEN (typically tied low), and/or nINT
-//   --> fault handling (esp. if auto-recovery is disabled)
+
+
+
+
+
+
+
+
+
+
 
 
 /*********************************************************************************
  * register map
  *********************************************************************************/
 
-// masks
+
 #define LN8282_MASK_SC_OPERATION_MODE	0x03
 #define LN8282_MASK_POWERON_IRQ_EN	0x04
 #define LN8282_MASK_SWAP_EN		0x80
@@ -76,9 +76,9 @@
    #define LN8282_MASK_BC_SYS		0x0F
 #endif
 
-#define LN8282_INT_BYTES	3	//only use 3 bytes (INT_HV_SC_1 RSVD)
+#define LN8282_INT_BYTES	3
 
-// register addresses
+
 #define LN8282_REG_DEVICE_ID		0x00
 #define LN8282_REG_INT_DEVICE_0		0x01
 #define LN8282_REG_INT_DEVICE_1		0x02
@@ -127,7 +127,7 @@
 #endif
 
 
-// Macros
+
 #define LN8282_REG_PRINT(regmap, reg_addr, val)    \
 	do {                                        \
 		regmap_read(regmap, reg_addr, &val); \
@@ -140,7 +140,7 @@
  *********************************************************************************/
 
 
-// chip (internal) system state
+
 enum {
     LN8282_STATE_UNKNOWN = -1,
     LN8282_STATE_IDLE = 2,
@@ -148,8 +148,8 @@ enum {
     LN8282_STATE_BYPASS_ACTIVE  = 12,
 };
 
-// timer values
-#define LN8282_TIMER_INIT      3	// min. wait time (after POWERON_IRQ)
+
+#define LN8282_TIMER_INIT      3
 
 /**
  * struct ln8282_info - ln8282 regulator instance
@@ -167,14 +167,14 @@ struct ln8282_dt_props {
 };
 
 struct ln8282_info {
-	//struct wake_lock	monitor_wake_lock;
+
 	char                *name;
 	struct device       *dev;
 	struct i2c_client       *client;
 	struct mutex		lock;
 	struct regmap		*regmap;
-	//struct power_supply	*mains;
-	//struct delayed_work work;
+
+
 
 	int			op_mode;
 	bool			reverse_power;
@@ -184,7 +184,7 @@ struct ln8282_info {
 	struct pinctrl *ln_pinctrl;
 	struct pinctrl_state *ln_gpio_active;
 	struct pinctrl_state *ln_gpio_suspend;
-	//struct ln8282_platform_data *pdata;
+
 	struct power_supply	*ln_psy;
 };
 
@@ -253,9 +253,9 @@ unsigned int ln8282_get_opmode_ext(void)
 */
 static inline void ln8282_auto_recovery(struct ln8282_info *info, unsigned int enable)
 {
-	//EXPERIMENTAL:
-	//-- auto-recovery should be programmed via OTP instead
-	//-- enable option to control via SW for testing
+
+
+
 	regmap_update_bits(info->regmap, LN8282_REG_DEVICE_CTRL_1,
 				0x40,
 				(enable<<6));
@@ -297,7 +297,7 @@ static inline void ln8282_set_switch_seq(struct ln8282_info *info,
 
 static void ln8282_enter_standby(struct ln8282_info *info)
 {
-	//update opmode
+
 	regmap_update_bits(info->regmap, LN8282_REG_HV_SC_CTRL_0,
 				LN8282_MASK_SC_OPERATION_MODE,
 				LN8282_OPMODE_STANDBY);
@@ -314,7 +314,7 @@ static void ln8282_enter_bypass(struct ln8282_info *info)
 	   regmap_write(info->regmap, LN8282_REG_FAULT_CTRL, 0x0B);
 	else
 	   regmap_write(info->regmap, LN8282_REG_FAULT_CTRL, 0x0C);
-	//update opmode
+
 	regmap_update_bits(info->regmap, LN8282_REG_HV_SC_CTRL_0,
 			LN8282_MASK_SC_OPERATION_MODE, LN8282_OPMODE_BYPASS);
 }
@@ -341,10 +341,10 @@ static void ln8282_enter_switching(struct ln8282_info *info)
        pr_info("%s:set switch in reverse mode\n");
 	   ln8282_set_switch_seq(info, 0);
 	   ln8282_set_base_opt_Bx(info, 0, 1, 0);
-	   ln8282_set_vbus_uv_track(info, 1);//disable during startup
+	   ln8282_set_vbus_uv_track(info, 1);
 	   regmap_write(info->regmap, LN8282_REG_FAULT_CTRL, 0x09);
 	} else {
-	   //check if VIN is at valid range for SWITCHING operation
+
 	   if (!ln8282_vin_switch_ok(info)) {
 	      pr_warn("%s: Failed to transition to forward SWITCHING mode.\n", __func__);
 	      return;
@@ -354,19 +354,19 @@ static void ln8282_enter_switching(struct ln8282_info *info)
 	   ln8282_set_base_opt_Bx(info, 0, 1, 0);
 	   regmap_write(info->regmap, LN8282_REG_FAULT_CTRL, 0x04);
 	}
-	//update opmode
+
 	regmap_update_bits(info->regmap, LN8282_REG_HV_SC_CTRL_0,
 			LN8282_MASK_SC_OPERATION_MODE, LN8282_OPMODE_SWITCHING);
 
 	if (info->reverse_power) {
 	   msleep(50);
-	   ln8282_set_vbus_uv_track(info, 0);//enable
+	   ln8282_set_vbus_uv_track(info, 0);
 	} else {
-	   //EXPERIMENTAL
-	   //-- disable VIN_SWITCH_OK checks to retain SWITCHING operation
-	   //   when VIN droops
+
+
+
 	   msleep(100);
-	   regmap_write(info->regmap, LN8282_REG_FAULT_CTRL, 0x0C);//+DISABLE_VIN_SWITCH_OK=1
+	   regmap_write(info->regmap, LN8282_REG_FAULT_CTRL, 0x0C);
 	}
 }
 /* main function for setting/changing operation mode */
@@ -384,7 +384,7 @@ bool ln8282_change_opmode(struct ln8282_info *info, unsigned int target_mode)
 	 *      CUSTOMER should know/indicate if power path is forward/reverse mode
 	 *      based on power connections before attempting to change operation mode
 	*/
-	//info->reverse_power = false;
+
 	dev_info(info->dev, "opmode from %d change to %d\n",
 					info->op_mode, target_mode);
 	ret = true;
@@ -449,34 +449,34 @@ int ln8282_hw_init(struct ln8282_info *info)
 	 */
 	pr_info("%s: HW initialization\n", __func__);
 
-	// TEMPORARY FIX TO ENABLE 12V BYPASS
-#ifdef LN8282_HW_REV_A1
-	regmap_update_bits(info->regmap, LN8282_REG_HV_SC_CTRL_1, 0x10, (1<<4)); //SC_OUT_MAX_OV_CFG=1 (20V threshold)
-	regmap_update_bits(info->regmap, LN8282_REG_TRACK_CTRL, 0x04, (1<<2));   //DISABLE_VIN_UV_TRACK=1 (side-effect of raising 11V->20V)
-#endif
-	// TEMPORARY FIX TO PREVENT OV FROM RX IC (due to ASK modulation)
-	//regmap_update_bits(info->regmap, LN8282_REG_FAULT_CTRL, 0x30, (0x3<<4)); //DISABLE_SC_OUT_MAX_OV=1, DISABLE_VBUS_IN_MAX_OV=1
 
-	// TEMPORARY FIX (should be addressed later in OTP)
+#ifdef LN8282_HW_REV_A1
+	regmap_update_bits(info->regmap, LN8282_REG_HV_SC_CTRL_1, 0x10, (1<<4));
+	regmap_update_bits(info->regmap, LN8282_REG_TRACK_CTRL, 0x04, (1<<2));
+#endif
+
+
+
+
 #ifdef LN8282_HW_REV_Bx
 	regmap_write(info->regmap, LN8282_REG_LION_CTRL, 0x5B);
-	//disable (BYPASS) instruction swap
+
 	regmap_update_bits(info->regmap, LN8282_REG_TRIM_7, LN8282_MASK_SWAP_EN, 0/*<<7*/);
 	regmap_write(info->regmap, LN8282_REG_LION_CTRL, 0x00);
 #endif
 
 
-	// Unmask generic interrupts
-	// -- unmask here (instead of in ln8282_irq_init()) since chip may not be
-	//    powered up when ln8282_irq_init() runs
-	//if (info->pdata && (info->pdata->irq_gpio >= 0)) {
-	//   regmap_write(info->regmap, LN8282_REG_INT_DEVICE_0_MSK, 0x00);
-	//   regmap_write(info->regmap, LN8282_REG_INT_DEVICE_1_MSK, 0x00);
-	//   regmap_write(info->regmap, LN8282_REG_INT_HV_SC_0_MSK,  0x00);
-	//   //regmap_write(info->regmap, LN8282_REG_INT_HV_SC_1_MSK,  0x00);//RSVD
-	//}
 
-	info->reverse_power = false;//LION-DEBUG: set as default
+
+
+
+
+
+
+
+
+
+	info->reverse_power = false;
 
 	return 1;
 }
@@ -495,17 +495,17 @@ EXPORT_SYMBOL(ln8282_hw_init);
 static void ln8282_otp_power(struct ln8282_info *info, const bool enable)
 {
 	if (enable) {
-	   //power up (raise VPP)
-	   msleep(2);//vpps + vpph
+
+	   msleep(2);
 	   regmap_update_bits(info->regmap, LN8282_REG_BC_OP_SUPPORT_CTRL,
 				0x02, (1<<1));//VPP_to_HV=1
-	   msleep(1);//vpph
+	   msleep(1);
 	} else {
 	   //power down (lower VPP)
-	   msleep(2);//vpps + vpph
+	   msleep(2);
 	   regmap_update_bits(info->regmap, LN8282_REG_BC_OP_SUPPORT_CTRL,
 				0x02, (0<<1));//VPP_to_HV=0
-	   msleep(1);//vppr
+	   msleep(1);
 	}
 }
 
@@ -515,56 +515,56 @@ static void ln8282_otp_write(struct ln8282_info *info,
 {
 	unsigned int nvm_ctrl;//NVM_CTRL value
 
-	//-----------------------------------------
-	//Pre-program phase
+
+
 	regmap_write(info->regmap, LN8282_REG_LION_CTRL, 0x5B);
 	ln8282_otp_power(info, true/*power-up*/);
 
-	// reset DIN, ADR
+
 	regmap_write(info->regmap, LN8282_REG_NVM_DIN, 0xFF);
 	nvm_ctrl = 0xFF & LN8282_OTP_MASK_WRITE_EN;
 	regmap_write(info->regmap, LN8282_REG_NVM_CTRL, nvm_ctrl);
 
-	//-----------------------------------------
-	//Setup OTP ADDR/DIN
-	msleep(1);//vpph
+
+
+	msleep(1);
 
 	nvm_ctrl |= (0xFF & LN8282_OTP_MASK_CS);//CS = 1
 	regmap_write(info->regmap, LN8282_REG_NVM_CTRL, nvm_ctrl);
 
-	regmap_write(info->regmap, LN8282_REG_NVM_DIN, otp_data);//set DATA
+	regmap_write(info->regmap, LN8282_REG_NVM_DIN, otp_data);
 
-	nvm_ctrl |= (LN8282_OTP_MASK_ADDR & otp_addr);//set ADDR
+	nvm_ctrl |= (LN8282_OTP_MASK_ADDR & otp_addr);
 	regmap_write(info->regmap, LN8282_REG_NVM_CTRL, nvm_ctrl);
-	udelay(6);//css
+	udelay(6);
 
-	//-----------------------------------------
-	//OTP Program
-	nvm_ctrl |= (0xFF & LN8282_OTP_MASK_PROG);//PROG = 1
-	regmap_write(info->regmap, LN8282_REG_NVM_CTRL, nvm_ctrl);
 
-	udelay(220);//pgm (200 ~ 400us)
 
-	nvm_ctrl &= (0xFF & ~LN8282_OTP_MASK_PROG);//PROG = 0
+	nvm_ctrl |= (0xFF & LN8282_OTP_MASK_PROG);
 	regmap_write(info->regmap, LN8282_REG_NVM_CTRL, nvm_ctrl);
 
-	udelay(6*2);//csh*2
+	udelay(220);
 
-	//-----------------------------------------
-	//Post-program phase
+	nvm_ctrl &= (0xFF & ~LN8282_OTP_MASK_PROG);
+	regmap_write(info->regmap, LN8282_REG_NVM_CTRL, nvm_ctrl);
+
+	udelay(6*2);
+
+
+
 	regmap_write(info->regmap, LN8282_REG_NVM_DIN, 0xFF);
 
-	nvm_ctrl &= (0xFF & ~LN8282_OTP_MASK_CS);//CS = 0
+	nvm_ctrl &= (0xFF & ~LN8282_OTP_MASK_CS);
 	regmap_write(info->regmap, LN8282_REG_NVM_CTRL, nvm_ctrl);
 
-	udelay(6);//csh
+	udelay(6);
 
-	nvm_ctrl &= (0xFF & ~LN8282_OTP_MASK_WRITE_EN);//WRITE_EN = 0
+	nvm_ctrl &= (0xFF & ~LN8282_OTP_MASK_WRITE_EN);
 	regmap_write(info->regmap, LN8282_REG_NVM_CTRL, nvm_ctrl);
 
 
-	//-----------------------------------------
-	//Cleanup phase
+
+
 	ln8282_otp_power(info, false/*power-down*/);
 	regmap_write(info->regmap, LN8282_REG_LION_CTRL, 0x00);
 }
@@ -584,7 +584,7 @@ static ssize_t ln8282_sysfs_show_regcmd(struct device *dev,
 				     struct device_attribute *attr,
 				     char *buf)
 {
-	//struct ln8282_info *info = dev_get_drvdata(dev);
+
 
 	if (ln8282_regcmd_valid) {
 	   pr_info("%s: /sysfs/ return stored data value (0x%02X)\n",
@@ -608,7 +608,7 @@ static ssize_t ln8282_sysfs_store_regcmd(struct device *dev,
 	 * 	>>read,0x01		: read from 0x01
 	 * 	>>write,0x01,0xAA	: write to  0x01
 	 */
-	//parse command (read | write)
+
 	ln8282_regcmd_valid = false;
 	if (strncmp("read,",  buf, 5) == 0)
 		write_cmd = false;
@@ -794,10 +794,10 @@ static ssize_t ln8282_sysfs_otp_overwrite(struct device *dev,
 {
 	struct ln8282_info *info = dev_get_drvdata(dev);
 
-	// Experimental Feature:
-	// -- this should NEVER be called in production releases
-	// -- overwrite OTP cell 0xF:
-	//    -- is 0xF0, now overwrite to 0xF8 (DISABLE_VIN_OV_TRACK=1)
+
+
+
+
 #ifdef LN8282_HW_REV_Bx
 	pr_info("%s: ********************** WARNING **********************\n", __func__);
 	pr_info("%s: --> this is an experimental feature (temporary fix)\n", __func__);
@@ -898,7 +898,6 @@ static int ln8282_gpio_init(struct ln8282_info *info)
 	return ret;
 }
 
-#if 0
 extern char *saved_command_line;
 
 static int get_board_version(void)
@@ -916,7 +915,6 @@ static int get_board_version(void)
 	}
 	return 1;
 }
-#endif
 
 #define FORWARD_BYPASS		1
 #define FORWARD_SWITCH		2
@@ -1038,7 +1036,6 @@ static int ln8282_probe(struct i2c_client *client,
 	info->name = LN8282_DRIVER_NAME;
 	info->client  = client;
 	info->dev = &client->dev;
-
 	i2c_set_clientdata(client, info);
 
 	info->regmap = devm_regmap_init_i2c(client, &ln8282_regmap_config);
@@ -1061,12 +1058,12 @@ static int ln8282_probe(struct i2c_client *client,
 		goto cleanup;
 	}
 
-	// NOTES: should only run if HW is powered up
-	// 	  --> trigger ln8282_hw_init() from another module
-	//if (ln8282_hw_init(info) < 0) {
-	//   pr_err("%s: hardware initialization error\n", __func__);
-	//   return -EINVAL;
-	//}
+
+
+
+
+
+
 
 	/* LION-DEBUG: test user-app through sysfs */
 	if (sysfs_create_group(&info->client->dev.kobj, &ln8282_attr_group) < 0) {
@@ -1152,13 +1149,12 @@ static struct i2c_driver ln8282_driver = {
 static int __init ln8282_init(void)
 {
 	int ret;
-#if 0
 	int drv_load = 0;
 
 	drv_load = get_board_version();
 	if (!drv_load)
 		return 0;
-#endif
+
 	ret = i2c_add_driver(&ln8282_driver);
 	if (ret)
 		printk(KERN_ERR "ln8282 i2c driver init failed!\n");
