@@ -1,8 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0
 VERSION = 4
 PATCHLEVEL = 14
+<<<<<<< HEAD
 SUBLEVEL = 290
 EXTRAVERSION =
+=======
+SUBLEVEL = 357
+EXTRAVERSION = -openela
+>>>>>>> 9be6616473e5 (Merge branch 'linux-4.14.y' of github.com:openela/kernel-lts into android13-4.14-msmnile)
 NAME = Petit Gorille
 
 # *DOCUMENTATION*
