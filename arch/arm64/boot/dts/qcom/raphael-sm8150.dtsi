@@ -114,6 +114,7 @@ And public attribution of xiaomi platforms(like F1 and so and)
 	qcom,battery-data = <&mtp_batterydata>;
 	dpdm-supply = <&usb2_phy0>;
 	qcom,distinguish-qc-class-ab;
+	//qcom,lpd-enable;
 	qcom,lpd-disable;
 	qcom,sw-jeita-enable;
 	qcom,step-charging-enable;
