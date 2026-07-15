@@ -2811,62 +2811,8 @@ int smblib_get_prop_battery_charging_enabled(struct smb_charger *chg,
 	return 0;
 }
 
-int smblib_get_prop_liquid_status(struct smb_charger *chg,
-					union power_supply_propval *val)
-{
-	/*
-	 * as qcom liquid detection have a bug that when connect a A to C
-	 * to Type-C port, but A port of cable plug is float, liquid detection
-	 * will be triggered, it is same with real liquid detection action
-	 * so we do not report lpd_status true to UI side, we will check later.
-	 */
-	val->intval = 0;
-
-	if (chg->lpd_status) {
-		val->intval = 1;
-		pr_info("liquid status is true\n");
-	} else {
-		val->intval = 0;
-		pr_info("liquid status is false\n");
-	}
-	return 0;
-}
-
 #define HW_ER_RATIO			2
 #define RF_ADC				1875
-
-bool smblib_support_liquid_feature(struct smb_charger *chg)
-{
-	int hw_version;
-	int rc, i, data;
-	int error_value = RF_ADC*HW_ER_RATIO/100;
-
-	if (chg->lpd_enabled == true) {
-		if (chg->init_once == false)	{
-			rc = smblib_read_iio_channel(chg, chg->iio.hw_version_gpio5,
-						DIV_FACTOR_MILI_V_I, &hw_version);
-			if (rc < 0) {
-				smblib_err(chg, "Couldn't read hw_version_gpio5, rc = %d\n", rc);
-				return rc;
-			} else {
-				smblib_err(chg, "hw_version_gpio5 ADC = %d\n", hw_version);
-			}
-
-			chg->init_once = true;
-
-			for (i = 0; i < chg->lpd_levels; i++) {
-				data = (chg->lpd_hwversion[i] * 100) / (100000 + chg->lpd_hwversion[i]);
-				if (abs(RF_ADC * data / 100 - hw_version) < error_value) {
-					chg->support_liquid = true;
-					break;
-				}
-			}
-		}
-	}
-
-	smblib_err(chg, "support_liquid is %d\n", chg->support_liquid);
-	return chg->support_liquid;
-}
 
 /***********************
  * BATTERY PSY SETTERS *
