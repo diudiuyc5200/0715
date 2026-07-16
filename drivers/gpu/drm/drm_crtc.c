@@ -558,6 +558,7 @@ int drm_mode_setcrtc(struct drm_device *dev, void *data,
 	struct drm_modeset_acquire_ctx ctx;
 	int ret;
 	int i;
+int num_connectors;
 
 	if (!drm_core_check_feature(dev, DRIVER_MODESET))
 		return -EINVAL;
